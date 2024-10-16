@@ -1,0 +1,121 @@
+---
+title: "discussion3"
+format: html
+editor: visual
+---
+
+```{r}
+# load packages
+
+library(here)
+library(tidyverse)
+library(sf)
+library(tmap)
+
+```
+
+```{r}
+sb_protected_areas <- read_sf(here::here("data", "cpad_super_units_sb.shp")) %>% 
+  st_transform("ESRI:102009")
+
+sb_city_boundaries <- read_sf(here::here("data", "sb_city_boundaries_2003.shp")) %>%
+  st_transform("ESRI:102009")
+
+sb_county_boundary <- read_sf(here::here("data", "sb_county_boundary_2020.shp")) %>%
+  st_transform("ESRI:102009")
+
+aves <- read_sf(here::here("data", "aves_observations_2020_2024.shp")) %>%
+  st_transform("ESRI:102009")
+
+```
+
+```{r}
+aves_PA_subset <- sb_protected_areas[aves,]
+nrow(aves_PA_subset)
+```
+
+```{r}
+tm_shape(sb_protected_areas) +
+  tm_polygons() +
+  tm_shape(aves_PA_subset) +
+  tm_dots()
+```
+
+```{r}
+aves_PA_join <- st_join(aves, sb_protected_areas)
+nrow(aves_PA_join)
+```
+
+```{r}
+tm_shape(sb_protected_areas) +
+  tm_polygons() +
+  tm_shape(aves_PA_join) +
+  tm_dots()
+
+
+```
+
+```{r}
+# create a buffer
+
+# first check your units!!!!
+st_crs(sb_protected_areas)$units
+```
+
+```{r}
+# create buffer
+PAs_5km <- st_buffer(sb_protected_areas, dist = 5000)
+```
+
+```{r}
+# now join that to the aves data by subsetting
+
+aves_PAs_5km <- PAs_5km[aves,] # subsets to where they intersect
+nrow(aves_PAs_5km)
+
+```
+
+# Now do this with SB Cities
+
+```{r}
+# create a buffer
+
+# first check your units!!!!
+st_crs(sb_city_boundaries)$units
+```
+
+```{r}
+# create buffer
+cities_15km <- st_buffer(sb_city_boundaries, dist = 15000) 
+```
+
+```{r}
+# find protected areas within 15km of a city
+
+# join the city buffer to the  protected areas data by subsetting
+
+PAs_city_15km <- cities_15km[sb_protected_areas,] # subsets to where they intersect
+nrow(PAs_city_15km)
+
+```
+
+```{r}
+# Filter to Buellton
+buellton <- sb_city_boundaries %>% 
+  filter(NAME == "Buellton")
+```
+
+```{r}
+# create 15km buffer of Buellton 
+
+buell_15km <- st_buffer(buellton, dist = 15000)
+```
+
+```{r}
+# let's map it!
+
+tm_shape(cities_15km) +
+  tm_polygons() +
+  tm_shape(buell_15km) +
+  tm_polygons(col = "red")
+```
