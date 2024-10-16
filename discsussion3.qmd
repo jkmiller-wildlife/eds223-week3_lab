@@ -15,21 +15,26 @@ library(tmap)
 ```
 
 ```{r}
+# CA Protected Areas Database
 sb_protected_areas <- read_sf(here::here("data", "cpad_super_units_sb.shp")) %>% 
-  st_transform("ESRI:102009")
+  st_transform("ESRI:102009") # changes coordinate reference system
 
+#UCSB Library
 sb_city_boundaries <- read_sf(here::here("data", "sb_city_boundaries_2003.shp")) %>%
   st_transform("ESRI:102009")
 
+#UCSB Library
 sb_county_boundary <- read_sf(here::here("data", "sb_county_boundary_2020.shp")) %>%
   st_transform("ESRI:102009")
 
+#iNaturalist
 aves <- read_sf(here::here("data", "aves_observations_2020_2024.shp")) %>%
   st_transform("ESRI:102009")
 
 ```
 
 ```{r}
+#subsetting
 aves_PA_subset <- sb_protected_areas[aves,]
 nrow(aves_PA_subset)
 ```
@@ -42,6 +47,7 @@ tm_shape(sb_protected_areas) +
 ```
 
 ```{r}
+#spatial join; keeps all bird records and adds protected areas to the aves data
 aves_PA_join <- st_join(aves, sb_protected_areas)
 nrow(aves_PA_join)
 ```
@@ -103,13 +109,30 @@ nrow(PAs_city_15km)
 # Filter to Buellton
 buellton <- sb_city_boundaries %>% 
   filter(NAME == "Buellton")
+
+# Filter to Goleta
+goleta <- sb_city_boundaries %>% 
+  filter(NAME == "Goleta")
+
 ```
 
 ```{r}
 # create 15km buffer of Buellton 
 
 buell_15km <- st_buffer(buellton, dist = 15000)
+goleta_15km <- st_buffer(goleta, dist = 15000)
 ```
+
+
+```{r}
+PAs_gol_15km <- goleta_15km[sb_protected_areas,] # subsets to where they intersect
+nrow(PAs_gol_15km)
+```
+
+```{r}
+PAs_gol_15km_intersect <- st_intersection(sb_protected_areas, goleta_15km)
+```
+
 
 ```{r}
 # let's map it!
@@ -117,5 +140,36 @@ buell_15km <- st_buffer(buellton, dist = 15000)
 tm_shape(cities_15km) +
   tm_polygons() +
   tm_shape(buell_15km) +
-  tm_polygons(col = "red")
+  tm_polygons(col = "red") +
+  tm_shape(goleta_15km) +
+  tm_polygons(col = "blue") #+
+#  tm_shape(PAs_gol_15km) +
+#  tm_polygons()
 ```
+
+
+###### Section #2 - try a different way
+
+```{r}
+# Find how many bird observations are within protected areas in Santa Barbara County
+
+aves_PA_intersect <- st_intersects(aves, sb_protected_areas)
+nrow(aves_PA_intersect) #500 is the total number of bird obs
+#view(aves_PA_intersect) not actually subset
+
+PA_aves_intersect <- st_intersects(sb_protected_areas, aves)
+nrow(PA_aves_intersect) #369 is the total number of protected areas
+
+```
+
+
+```{r}
+#checks coordinate reference system
+st_crs(aves)
+
+#checks units; always check units before creating buffers
+st_crs(aves)$units
+```
+
+
+
